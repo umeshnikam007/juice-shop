@@ -1,3 +1,4 @@
+
 name: Juice Shop Semgrep SAST
 
 on:
@@ -5,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   semgrep:
@@ -15,21 +17,33 @@ jobs:
       image: semgrep/semgrep
 
     steps:
+      # 1. Download the repository source code
       - name: Checkout Juice Shop code
         uses: actions/checkout@v4
 
+      # 2. Run SAST and generate a SARIF report
       - name: Run Semgrep SAST
         run: |
           semgrep scan \
             --config p/default \
             --config p/nodejs \
-            --json \
-            --output semgrep-report.json \
+            --sarif \
+            --output semgrep-report.sarif \
             --no-error
 
-      - name: Upload Semgrep report
+      # 3. Upload the report as a downloadable artifact
+      - name: Save Semgrep SARIF report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: juice-shop-semgrep-report
-          path: semgrep-report.json
+          name: juice-shop-semgrep-sarif-report
+          path: semgrep-report.sarif
+          if-no-files-found: warn
+
+      # 4. Publish findings to GitHub Code Scanning
+      - name: Upload SARIF to GitHub Code Scanning
+        if: success()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep-report.sarif
+          category: semgrep-juice-shop
