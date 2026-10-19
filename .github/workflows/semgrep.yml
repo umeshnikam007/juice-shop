@@ -1,0 +1,36 @@
+
+name: Juice Shop Semgrep SAST
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    name: Semgrep Security Scan
+    runs-on: ubuntu-latest
+
+    container:
+      image: semgrep/semgrep
+
+    steps:
+      - name: Checkout Juice Shop code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep SAST
+        run: |
+          semgrep scan \
+            --config p/default \
+            --config p/nodejs \
+            --json \
+            --output semgrep-report.json \
+            --no-error
+
+      - name: Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: juice-shop-semgrep-report
+          path: semgrep-report.json
