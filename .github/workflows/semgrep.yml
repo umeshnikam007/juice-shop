@@ -18,18 +18,18 @@ jobs:
         uses: actions/checkout@v4
 
       # Step 2: Run Semgrep on the root directory
-      - name: Run Semgrep SAST
+       - name: Run Semgrep SAST
         uses: semgrep/semgrep-action@v1
         with:
           config: 'p/default p/nodejs'
-          path: '.' # Scans the entire root of your forked repository
+          path: '.'
           generateSarif: 'semgrep-results.sarif'
-        continue-on-error: true # Keeps the pipeline alive so results can upload
+        continue-on-error: true # Keeps the job running even when flaws are found
 
       # Step 3: Parse and upload the findings directly to your GitHub UI
-      - name: Upload SARIF to GitHub Security Tab
+       - name: Upload SARIF to GitHub Security Tab
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: semgrep-results.sarif
+          sarif_file: ${{ github.workspace }}/semgrep-results.sarif
           category: semgrep-juice-shop
