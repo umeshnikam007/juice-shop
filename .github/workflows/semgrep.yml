@@ -1,35 +1,35 @@
-name: Juice Shop Semgrep SARIF Triage
+name: Juice Shop Semgrep SAST
 
 on:
-  workflow_dispatch: # Allows you to manually trigger this scan from your Actions tab
+  workflow_dispatch:
 
 permissions:
   contents: read
-  security-events: write # Mandatory: Allows the runner to upload findings to your Security Tab
 
 jobs:
-  semgrep-sarif:
-    name: Semgrep Code Scanning
+  semgrep:
+    name: Semgrep Security Scan
     runs-on: ubuntu-latest
 
+    container:
+      image: semgrep/semgrep
+
     steps:
-      # Step 1: Natively checkout your forked Juice Shop codebase
-      - name: Checkout Forked Codebase
+      - name: Checkout Juice Shop code
         uses: actions/checkout@v4
 
-      # Step 2: Run Semgrep on the root directory
-       - name: Run Semgrep SAST
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: 'p/default p/nodejs'
-          path: '.'
-          generateSarif: 'semgrep-results.sarif'
-        continue-on-error: true # Keeps the job running even when flaws are found
+      - name: Run Semgrep SAST
+        run: |
+          semgrep scan \
+            --config p/default \
+            --config p/nodejs \
+            --json \
+            --output semgrep-report.json \
+            --no-error
 
-      # Step 3: Parse and upload the findings directly to your GitHub UI
-       - name: Upload SARIF to GitHub Security Tab
+      - name: Upload Semgrep report
         if: always()
-        uses: github/codeql-action/upload-sarif@v4
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: ${{ github.workspace }}/semgrep-results.sarif
-          category: semgrep-juice-shop
+          name: juice-shop-semgrep-report
+          path: semgrep-report.json
