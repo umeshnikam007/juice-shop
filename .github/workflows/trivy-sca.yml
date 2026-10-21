@@ -1,0 +1,52 @@
+
+name: Juice Shop Trivy SCA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy:
+    name: Trivy Dependency Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout Juice Shop code
+        uses: actions/checkout@v4
+
+      # 2. Create reports directory
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      # 3. Run Trivy SCA and generate SARIF
+      - name: Run Trivy SCA
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: reports/trivy-report.sarif
+          exit-code: '0'
+
+      # 4. Downloadable SARIF report
+      - name: Save Trivy SARIF report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: juice-shop-trivy-sarif-report
+          path: reports/trivy-report.sarif
+          if-no-files-found: warn
+
+      # 5. Publish findings to GitHub Code Scanning
+      - name: Upload SARIF to GitHub Code Scanning
+        if: always() && hashFiles('reports/trivy-report.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: reports/trivy-report.sarif
+          category: trivy-juice-shop
